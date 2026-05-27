@@ -229,7 +229,7 @@ static void InitVRepRealClass(DllInfo *dll)
  * Shared Library Initialization and Finalization
  */
 
-static const R_ExternalMethodDef ExtEntries[] = {
+static const R_CallMethodDef CallEntries[] = {
     {"make_rep_real", (DL_FUNC) &make_rep_real, -1},
     {NULL, NULL, 0}
 };
@@ -238,5 +238,5 @@ void R_init_vecrep(DllInfo *dll)
 {
     InitVRepRealClass(dll);
 
-    R_registerRoutines(dll, NULL, NULL, NULL, ExtEntries);
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
 }
