@@ -155,3 +155,14 @@ names(y)
   round-tripped object is correct but no longer compact.
 - **Sorting expands the internal buffer**, though the ALTREP shell
   persists.
+
+## Acknowledgements
+
+The initial codebase was adapted from Gabriel Becker’s
+[vectorwindow](https://github.com/ALTREP-examples/vectorwindow/)
+example, presented in his Bioconductor Developers Forum talk
+([YouTube](https://www.youtube.com/watch?v=8i7ziLqsE2s)).
+
+Substantial proportions of this package were developed in tandem with
+[Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic). All
+code has been reviewed and guided by humans.
