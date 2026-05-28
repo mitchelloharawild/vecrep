@@ -476,6 +476,141 @@ test_that("[<- does not modify parent vector", {
 })
 
 # ---------------------------------------------------------------------------
+# each= parameter
+# ---------------------------------------------------------------------------
+
+check_matches_base_rep_each <- function(par, each, times = 1L) {
+  result   <- rep_altrep(par, times = times, each = each)
+  expected <- rep(par, times = times, each = each)
+  expect_equal(unclass(result), unclass(expected))
+}
+
+test_that("each: double elements repeated in place", {
+  check_matches_base_rep_each(dbl_par, each = 2L)
+})
+
+test_that("each: integer elements repeated in place", {
+  check_matches_base_rep_each(int_par, each = 3L)
+})
+
+test_that("each: logical elements repeated in place", {
+  check_matches_base_rep_each(lgl_par, each = 4L)
+})
+
+test_that("each: complex elements repeated in place", {
+  check_matches_base_rep_each(cplx_par, each = 2L)
+})
+
+test_that("each: raw elements repeated in place", {
+  check_matches_base_rep_each(raw_par, each = 3L)
+})
+
+test_that("each: character elements repeated in place", {
+  check_matches_base_rep_each(chr_par, each = 2L)
+})
+
+test_that("each: list elements repeated in place", {
+  check_matches_base_rep_each(lst_par, each = 2L)
+})
+
+test_that("each: factor elements repeated in place", {
+  result   <- rep_altrep(fct_par, each = 2L)
+  expected <- rep(fct_par, each = 2L)
+  expect_equal(unclass(result), unclass(expected))
+  expect_equal(levels(result), levels(expected))
+})
+
+test_that("each: length is plen * each", {
+  expect_length(rep_altrep(dbl_par, each = 3L), length(dbl_par) * 3L)
+})
+
+test_that("each: stays ALTREP on creation", {
+  expect_true(is_vrep_compact(rep_altrep(chr_par, each = 2L)))
+})
+
+test_that("each: element access stays ALTREP", {
+  y <- rep_altrep(dbl_par, each = 3L)
+  expect_equal(y[[1L]], dbl_par[[1L]])
+  expect_equal(y[[2L]], dbl_par[[1L]])  # second copy of first element
+  expect_equal(y[[3L]], dbl_par[[1L]])  # third copy of first element
+  expect_equal(y[[4L]], dbl_par[[2L]])  # first copy of second element
+  expect_false(is_materialised(y))
+})
+
+test_that("each = 1 is identical to default (times-only)", {
+  y1 <- rep_altrep(dbl_par, times = 3L)
+  y2 <- rep_altrep(dbl_par, times = 3L, each = 1L)
+  expect_equal(as.numeric(y1), as.numeric(y2))
+})
+
+# ---------------------------------------------------------------------------
+# each + times combined
+# ---------------------------------------------------------------------------
+
+test_that("each + times: double matches base::rep()", {
+  check_matches_base_rep_each(dbl_par, each = 2L, times = 3L)
+})
+
+test_that("each + times: integer matches base::rep()", {
+  check_matches_base_rep_each(int_par, each = 3L, times = 2L)
+})
+
+test_that("each + times: character matches base::rep()", {
+  check_matches_base_rep_each(chr_par, each = 2L, times = 2L)
+})
+
+test_that("each + times: matches letters example from base::rep()", {
+  result   <- rep_altrep(letters, each = 2L, times = 2L)
+  expected <- rep(letters, each = 2L, times = 2L)
+  expect_equal(result, expected)
+})
+
+test_that("each + times: length is plen * each * times", {
+  n     <- length(dbl_par)
+  each  <- 2L
+  times <- 3L
+  expect_length(rep_altrep(dbl_par, times = times, each = each),
+                n * each * times)
+})
+
+test_that("each + times: stays ALTREP on creation", {
+  expect_true(is_vrep_compact(rep_altrep(int_par, times = 2L, each = 3L)))
+})
+
+test_that("each + times: named vector names match base::rep()", {
+  par <- c(a = 1.0, b = 2.0, c = 3.0)
+  y   <- rep_altrep(par, times = 2L, each = 2L)
+  expect_equal(names(y), names(rep(par, times = 2L, each = 2L)))
+  expect_true(is_vrep_compact(y))
+  expect_true(is_vrep_compact(names(y)))
+})
+
+test_that("each + times: materialisation produces correct values", {
+  y        <- rep_altrep(dbl_par, times = 2L, each = 3L)
+  expected <- rep(dbl_par, times = 2L, each = 3L)
+  sort(y)  # triggers Dataptr -> materialise
+  expect_true(is_vrep_expanded(y))
+  expect_equal(as.numeric(y), expected)
+})
+
+# ---------------------------------------------------------------------------
+# each= input validation
+# ---------------------------------------------------------------------------
+
+test_that("rep_altrep rejects each < 1", {
+  expect_error(rep_altrep(dbl_par, each = 0L))
+  expect_error(rep_altrep(dbl_par, each = -1L))
+})
+
+test_that("rep_altrep rejects NA each", {
+  expect_error(rep_altrep(dbl_par, each = NA_integer_))
+})
+
+test_that("rep_altrep rejects non-scalar each", {
+  expect_error(rep_altrep(dbl_par, each = c(2L, 3L)), "length")
+})
+
+# ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
 

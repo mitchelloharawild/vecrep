@@ -2,23 +2,49 @@
 % Please edit documentation in R/vecrep.R
 \name{rep_altrep}
 \alias{rep_altrep}
-\title{Repeat a numeric vector using ALTREP}
+\title{Repeat a vector using ALTREP}
 \usage{
-rep_altrep(x, times)
+rep_altrep(x, times = 1L, each = 1L)
 }
 \arguments{
-\item{x}{A numeric vector to repeat.}
+\item{x}{A vector to repeat. Must be one of: double, integer, logical,
+complex, raw, character, or list (including classed variants thereof).}
 
-\item{times}{A single positive integer giving the number of times to repeat \code{x}.}
+\item{times}{A single positive integer giving the number of times to repeat
+the whole (each-expanded) pattern. Defaults to \code{1L}.}
+
+\item{each}{A single positive integer giving the number of times each
+element is repeated before moving to the next. Defaults to \code{1L}.}
 }
 \value{
-An ALTREP numeric vector of length \code{length(x) * times}.
+An ALTREP vector of the same type and class as \code{x}, with length
+\code{length(x) * each * times}.
 }
 \description{
-Creates a repeated numeric vector backed by an ALTREP representation,
-avoiding materialisation of the full vector in memory.
+Creates a repeated vector backed by an ALTREP representation,
+avoiding materialisation of the full vector in memory until necessary.
+}
+\details{
+Supported types: double, integer, logical, complex, raw, character, and list.
+Classed vectors (e.g. \code{factor}, \code{Date}, \code{POSIXct}) are handled
+transparently: the class attribute is preserved on the returned object so
+S3 dispatch continues to work without forcing materialisation.
+
+\code{times} and \code{each} can be combined freely, matching the behaviour of
+\code{\link[base:rep]{base::rep()}}: \code{each} replicates individual elements first, then \code{times}
+repeats the resulting pattern.  Providing only \code{times} is equivalent to
+\code{rep(x, times = times)}; providing only \code{each} is equivalent to
+\code{rep(x, each = each)}.
 }
 \examples{
-rep_altrep(rnorm(5), 3)
+rep_altrep(letters[1:4], times = 2)
+rep_altrep(letters[1:4], each = 2)
+rep_altrep(letters[1:4], times = 2, each = 3)
+rep_altrep(1L:4L, each = 2L)
+rep_altrep(c(TRUE, FALSE, NA), each = 2L, times = 3L)
+rep_altrep(factor(c("a", "b", "c")), each = 2L)
+rep_altrep(as.Date("2024-01-01") + 0:2, each = 2L)
+rep_altrep(c("foo", "bar"), times = 5L)
+rep_altrep(list(1, "a", TRUE), each = 2L, times = 2L)
 
 }

@@ -7,8 +7,8 @@
 
 /*
  * ALTREP objects representing a vector formed by repeating the elements of a
- * parent vector a fixed number of times, equivalent to base::rep(parent,
- * times = n), without allocating the expanded data until absolutely necessary.
+ * parent vector, equivalent to base::rep(parent, times = t, each = e),
+ * without allocating the expanded data until absolutely necessary.
  *
  * Supported types: REALSXP, INTSXP, LGLSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP.
  *
@@ -30,10 +30,17 @@ static R_altrep_class_t rep_list_class;
 
 /* ── data layout ────────────────────────────────────────────────────────────
  *
- *  data1: VECSXP (list) length 2
+ *  data1: VECSXP (list) length 3
  *      [0]: ExternalPtr canary  (parent held in Protected slot)
- *      [1]: INTSXP scalar       (times)
+ *      [1]: INTSXP scalar       (times  – whole-pattern repetitions)
+ *      [2]: INTSXP scalar       (each   – per-element repetitions)
  *  data2: Expanded data SEXP    (R_NilValue until materialised)
+ *
+ *  The index mapping for element i of the result is:
+ *
+ *      parent[ (i / each) % plen ]
+ *
+ *  Total length = plen * each * times.
  *
  *  Once data2 != R_NilValue every method must use it: a writable Dataptr has
  *  been vended and the buffer may have been mutated.
@@ -46,6 +53,7 @@ static R_altrep_class_t rep_list_class;
 #define VREP_PARENT(x)      R_ExternalPtrProtected(VECTOR_ELT(R_altrep_data1(x), 0))
 #define VREP_CANARY(x)      VECTOR_ELT(R_altrep_data1(x), 0)
 #define VREP_TIMES(x)       ((R_xlen_t)INTEGER_ELT(VECTOR_ELT(R_altrep_data1(x), 1), 0))
+#define VREP_EACH(x)        ((R_xlen_t)INTEGER_ELT(VECTOR_ELT(R_altrep_data1(x), 2), 0))
 #define VREP_PATTERN_LEN(x) XLENGTH(VREP_PARENT(x))
 #define VREP_EXPANDED(x)    R_altrep_data2(x)
 #define VREP_SET_EXPANDED(x, v) R_set_altrep_data2(x, v)
@@ -82,7 +90,7 @@ static void canary_finalizer(SEXP x) {
  *   comment  – comment() metadata
  *
  * "names" is intentionally excluded: its correct value for the repeated vector
- * has length pattern_len * times, so it cannot be copied as-is from the
+ * has length pattern_len * each * times, so it cannot be copied as-is from the
  * parent.  R will compute names lazily on materialisation via the normal
  * attribute lookup path.
  */
@@ -97,21 +105,25 @@ static void copy_vector_attrs(SEXP dst, SEXP src) {
   }
 }
 
-static SEXP make_vrep_internal(SEXP parent, SEXP times, R_altrep_class_t cls) {
+/* Forward declaration needed for the names-vrep construction below. */
+static SEXP make_vrep_internal(SEXP parent, SEXP times, SEXP each,
+                                R_altrep_class_t cls);
+
+static SEXP make_vrep_internal(SEXP parent, SEXP times, SEXP each,
+                                R_altrep_class_t cls) {
 #ifndef SWITCH_TO_REFCNT
   MARK_NOT_MUTABLE(parent);
 #endif
 
-  /* See the comment in the original code about R_MakeExternalPtr ref-count
-     bug: initialise to R_NilValue then use the setter. */
   int *canarydata = (int *)malloc(sizeof(int));
   SEXP canary = R_MakeExternalPtr(canarydata, R_NilValue, R_NilValue);
   R_SetExternalPtrProtected(canary, parent);
   R_RegisterCFinalizerEx(canary, canary_finalizer, TRUE);
 
-  SEXP mdata = PROTECT(allocVector(VECSXP, 2));
+  SEXP mdata = PROTECT(allocVector(VECSXP, 3));
   SET_VECTOR_ELT(mdata, 0, canary);
   SET_VECTOR_ELT(mdata, 1, times);
+  SET_VECTOR_ELT(mdata, 2, each);
 
   SEXP ans = R_new_altrep(cls, mdata, R_NilValue);
   UNPROTECT(1); /* mdata */
@@ -121,11 +133,11 @@ static SEXP make_vrep_internal(SEXP parent, SEXP times, R_altrep_class_t cls) {
 
   /* If parent has names, attach a vrep_str for them so that names() on the
      result returns the correctly-repeated names without materialising the
-     parent data.  We call make_vrep_internal directly to avoid re-entering
-     the type-dispatch switch in make_vrep. */
+     parent data.  Names repeat with the same each/times as the data. */
   SEXP par_names = getAttrib(parent, R_NamesSymbol);
   if (par_names != R_NilValue) {
-    SEXP rep_names = PROTECT(make_vrep_internal(par_names, times, rep_str_class));
+    SEXP rep_names = PROTECT(make_vrep_internal(par_names, times, each,
+                                                rep_str_class));
     setAttrib(ans, R_NamesSymbol, rep_names);
     UNPROTECT(1);
   }
@@ -146,9 +158,11 @@ static Rboolean vrep_Inspect(SEXP x, int pre, int deep, int pvec,
   if (VREP_EXPANDED(x) != R_NilValue)
     Rprintf(" vrep<%s> [expanded]\n", tname);
   else
-    Rprintf(" vrep<%s> [par %p pattern_len: %ld times: %ld]\n",
+    Rprintf(" vrep<%s> [par %p pattern_len: %ld each: %ld times: %ld]\n",
             tname, (void *)VREP_PARENT(x),
-            (long)VREP_PATTERN_LEN(x), (long)VREP_TIMES(x));
+            (long)VREP_PATTERN_LEN(x),
+            (long)VREP_EACH(x),
+            (long)VREP_TIMES(x));
   return TRUE;
 }
 
@@ -156,7 +170,14 @@ static R_xlen_t vrep_Length(SEXP x) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue)
     return XLENGTH(exp);
-  return VREP_PATTERN_LEN(x) * VREP_TIMES(x);
+  return VREP_PATTERN_LEN(x) * VREP_EACH(x) * VREP_TIMES(x);
+}
+
+/* ── index mapping ──────────────────────────────────────────────────────── */
+
+/* Maps result index i to the parent index, honouring both each and times. */
+static R_INLINE R_xlen_t vrep_parent_idx(SEXP x, R_xlen_t i) {
+  return (i / VREP_EACH(x)) % VREP_PATTERN_LEN(x);
 }
 
 /* ── materialisation helper ─────────────────────────────────────────────── */
@@ -167,10 +188,9 @@ static R_xlen_t vrep_Length(SEXP x) {
  * Returns the new SEXP (caller must UNPROTECT 1).
  */
 static SEXP vrep_materialise(SEXP x) {
-  SEXP parent       = VREP_PARENT(x);
-  R_xlen_t plen     = VREP_PATTERN_LEN(x);
-  R_xlen_t len      = vrep_Length(x);
-  SEXPTYPE tp       = TYPEOF(parent);
+  SEXP parent   = VREP_PARENT(x);
+  R_xlen_t len  = vrep_Length(x);
+  SEXPTYPE tp   = TYPEOF(parent);
 
   SEXP ans = PROTECT(allocVector(tp, len));
   copy_vector_attrs(ans, parent);
@@ -179,36 +199,36 @@ static SEXP vrep_materialise(SEXP x) {
     case REALSXP: {
       const double *src = REAL_RO(parent);
       double       *dst = REAL(ans);
-      for (R_xlen_t j = 0; j < len; j++) dst[j] = src[j % plen];
+      for (R_xlen_t j = 0; j < len; j++) dst[j] = src[vrep_parent_idx(x, j)];
       break;
     }
     case INTSXP:
     case LGLSXP: {
       const int *src = INTEGER_RO(parent);
       int       *dst = INTEGER(ans);
-      for (R_xlen_t j = 0; j < len; j++) dst[j] = src[j % plen];
+      for (R_xlen_t j = 0; j < len; j++) dst[j] = src[vrep_parent_idx(x, j)];
       break;
     }
     case CPLXSXP: {
       const Rcomplex *src = COMPLEX_RO(parent);
       Rcomplex       *dst = COMPLEX(ans);
-      for (R_xlen_t j = 0; j < len; j++) dst[j] = src[j % plen];
+      for (R_xlen_t j = 0; j < len; j++) dst[j] = src[vrep_parent_idx(x, j)];
       break;
     }
     case RAWSXP: {
       const Rbyte *src = RAW_RO(parent);
       Rbyte       *dst = RAW(ans);
-      for (R_xlen_t j = 0; j < len; j++) dst[j] = src[j % plen];
+      for (R_xlen_t j = 0; j < len; j++) dst[j] = src[vrep_parent_idx(x, j)];
       break;
     }
     case STRSXP: {
       for (R_xlen_t j = 0; j < len; j++)
-        SET_STRING_ELT(ans, j, STRING_ELT(parent, j % plen));
+        SET_STRING_ELT(ans, j, STRING_ELT(parent, vrep_parent_idx(x, j)));
       break;
     }
     case VECSXP: {
       for (R_xlen_t j = 0; j < len; j++)
-        SET_VECTOR_ELT(ans, j, VECTOR_ELT(parent, j % plen));
+        SET_VECTOR_ELT(ans, j, VECTOR_ELT(parent, vrep_parent_idx(x, j)));
       break;
     }
     default:
@@ -227,7 +247,6 @@ static SEXP vrep_materialise(SEXP x) {
 static void *vrep_Dataptr(SEXP x, Rboolean writeable) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) {
-    /* Already materialised: return raw pointer into the stored buffer. */
     switch (TYPEOF(exp)) {
       case REALSXP: return REAL(exp);
       case INTSXP:
@@ -277,7 +296,7 @@ static const void *vrep_Dataptr_or_null(SEXP x) {
 static double vrep_real_Elt(SEXP x, R_xlen_t i) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) return REAL_ELT(exp, i);
-  return REAL_ELT(VREP_PARENT(x), i % VREP_PATTERN_LEN(x));
+  return REAL_ELT(VREP_PARENT(x), vrep_parent_idx(x, i));
 }
 
 static R_xlen_t vrep_real_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
@@ -286,9 +305,8 @@ static R_xlen_t vrep_real_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
   if (exp != R_NilValue) return REAL_GET_REGION(exp, i, n, buf);
   R_xlen_t xlen  = vrep_Length(x);
   R_xlen_t ncopy = (xlen - i < n) ? xlen - i : n;
-  R_xlen_t plen  = VREP_PATTERN_LEN(x);
   const double *par = REAL_RO(VREP_PARENT(x));
-  for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[(i + j) % plen];
+  for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[vrep_parent_idx(x, i + j)];
   return ncopy;
 }
 
@@ -304,7 +322,7 @@ static int vrep_real_No_NA(SEXP x) {
 static int vrep_int_Elt(SEXP x, R_xlen_t i) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) return INTEGER_ELT(exp, i);
-  return INTEGER_ELT(VREP_PARENT(x), i % VREP_PATTERN_LEN(x));
+  return INTEGER_ELT(VREP_PARENT(x), vrep_parent_idx(x, i));
 }
 
 static R_xlen_t vrep_int_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
@@ -313,9 +331,8 @@ static R_xlen_t vrep_int_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
   if (exp != R_NilValue) return INTEGER_GET_REGION(exp, i, n, buf);
   R_xlen_t xlen  = vrep_Length(x);
   R_xlen_t ncopy = (xlen - i < n) ? xlen - i : n;
-  R_xlen_t plen  = VREP_PATTERN_LEN(x);
   const int *par = INTEGER_RO(VREP_PARENT(x));
-  for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[(i + j) % plen];
+  for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[vrep_parent_idx(x, i + j)];
   return ncopy;
 }
 
@@ -326,7 +343,7 @@ static int vrep_int_Is_sorted(SEXP x) { return UNKNOWN_SORTEDNESS; }
 static int vrep_lgl_Elt(SEXP x, R_xlen_t i) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) return LOGICAL_ELT(exp, i);
-  return LOGICAL_ELT(VREP_PARENT(x), i % VREP_PATTERN_LEN(x));
+  return LOGICAL_ELT(VREP_PARENT(x), vrep_parent_idx(x, i));
 }
 
 static R_xlen_t vrep_lgl_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
@@ -335,9 +352,8 @@ static R_xlen_t vrep_lgl_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
   if (exp != R_NilValue) return LOGICAL_GET_REGION(exp, i, n, buf);
   R_xlen_t xlen  = vrep_Length(x);
   R_xlen_t ncopy = (xlen - i < n) ? xlen - i : n;
-  R_xlen_t plen  = VREP_PATTERN_LEN(x);
   const int *par = LOGICAL_RO(VREP_PARENT(x));
-  for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[(i + j) % plen];
+  for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[vrep_parent_idx(x, i + j)];
   return ncopy;
 }
 
@@ -346,7 +362,7 @@ static R_xlen_t vrep_lgl_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
 static Rcomplex vrep_cplx_Elt(SEXP x, R_xlen_t i) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) return COMPLEX_ELT(exp, i);
-  return COMPLEX_ELT(VREP_PARENT(x), i % VREP_PATTERN_LEN(x));
+  return COMPLEX_ELT(VREP_PARENT(x), vrep_parent_idx(x, i));
 }
 
 static R_xlen_t vrep_cplx_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
@@ -355,9 +371,8 @@ static R_xlen_t vrep_cplx_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
   if (exp != R_NilValue) return COMPLEX_GET_REGION(exp, i, n, buf);
   R_xlen_t xlen  = vrep_Length(x);
   R_xlen_t ncopy = (xlen - i < n) ? xlen - i : n;
-  R_xlen_t plen  = VREP_PATTERN_LEN(x);
   const Rcomplex *par = COMPLEX_RO(VREP_PARENT(x));
-  for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[(i + j) % plen];
+  for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[vrep_parent_idx(x, i + j)];
   return ncopy;
 }
 
@@ -366,7 +381,7 @@ static R_xlen_t vrep_cplx_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
 static Rbyte vrep_raw_Elt(SEXP x, R_xlen_t i) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) return RAW_ELT(exp, i);
-  return RAW_ELT(VREP_PARENT(x), i % VREP_PATTERN_LEN(x));
+  return RAW_ELT(VREP_PARENT(x), vrep_parent_idx(x, i));
 }
 
 /* No Get_region API for ALTRAW in current R headers. */
@@ -376,7 +391,7 @@ static Rbyte vrep_raw_Elt(SEXP x, R_xlen_t i) {
 static SEXP vrep_str_Elt(SEXP x, R_xlen_t i) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) return STRING_ELT(exp, i);
-  return STRING_ELT(VREP_PARENT(x), i % VREP_PATTERN_LEN(x));
+  return STRING_ELT(VREP_PARENT(x), vrep_parent_idx(x, i));
 }
 
 static void vrep_str_Set_elt(SEXP x, R_xlen_t i, SEXP v) {
@@ -400,7 +415,7 @@ static int vrep_str_No_NA(SEXP x)     { return 0; } /* conservative */
 static SEXP vrep_list_Elt(SEXP x, R_xlen_t i) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) return VECTOR_ELT(exp, i);
-  return VECTOR_ELT(VREP_PARENT(x), i % VREP_PATTERN_LEN(x));
+  return VECTOR_ELT(VREP_PARENT(x), vrep_parent_idx(x, i));
 }
 
 static void vrep_list_Set_elt(SEXP x, R_xlen_t i, SEXP v) {
@@ -528,21 +543,27 @@ static void InitVRepListClass(DllInfo *dll) {
 /* ── public constructor ─────────────────────────────────────────────────── */
 
 /*
- * make_vrep(parent, times)
+ * make_vrep(parent, times, each)
  *
  * Dispatches on typeof(parent) to pick the right ALTREP class.
- * `times` must be a length-1 integer or double scalar.
+ * Both `times` and `each` must be length-1 positive integer scalars.
  *
- * Classed vectors (factor, Date, POSIXct, IDate, …) are handled
- * automatically: the class attribute is copied from parent onto the
- * returned ALTREP object so R-level dispatch continues to work.
+ * Equivalent to base::rep(parent, times = times, each = each).
  */
-SEXP make_vrep(SEXP parent, SEXP times) {
+SEXP make_vrep(SEXP parent, SEXP times, SEXP each) {
   /* Normalise times to a length-1 INTSXP. */
   if (TYPEOF(times) != INTSXP || XLENGTH(times) != 1) {
     PROTECT(times = coerceVector(times, INTSXP));
     if (INTEGER_ELT(times, 0) < 1)
       error("make_vrep: 'times' must be a positive integer");
+    UNPROTECT(1);
+  }
+
+  /* Normalise each to a length-1 INTSXP. */
+  if (TYPEOF(each) != INTSXP || XLENGTH(each) != 1) {
+    PROTECT(each = coerceVector(each, INTSXP));
+    if (INTEGER_ELT(each, 0) < 1)
+      error("make_vrep: 'each' must be a positive integer");
     UNPROTECT(1);
   }
 
@@ -559,14 +580,17 @@ SEXP make_vrep(SEXP parent, SEXP times) {
       error("make_vrep: unsupported type '%s'", type2char(TYPEOF(parent)));
   }
 
-  return make_vrep_internal(parent, times, cls);
+  return make_vrep_internal(parent, times, each, cls);
 }
 
 /* Keep the old entry point as a thin wrapper for backward compatibility. */
 SEXP make_rep_real(SEXP parent, SEXP times) {
   if (TYPEOF(parent) != REALSXP)
     error("make_rep_real: parent must be a numeric (double) vector");
-  return make_vrep(parent, times);
+  SEXP each = PROTECT(ScalarInteger(1));
+  SEXP ans  = make_vrep(parent, times, each);
+  UNPROTECT(1);
+  return ans;
 }
 
 /* ── DLL registration ───────────────────────────────────────────────────── */
