@@ -63,8 +63,10 @@ avoiding materialisation of the full vector in memory.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">rep_altrep</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in rep_altrep(1:5, 3):</span> is.double(x) is not TRUE</span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">rep_altrep</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] -1.400043517  0.255317055 -2.437263611 -0.005571287  0.621552721</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [6] -1.400043517  0.255317055 -2.437263611 -0.005571287  0.621552721</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [11] -1.400043517  0.255317055 -2.437263611 -0.005571287  0.621552721</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

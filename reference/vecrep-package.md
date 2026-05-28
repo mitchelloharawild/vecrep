@@ -3,7 +3,7 @@
 Replicates numeric vectors using R's ALTREP framework, avoiding
 unnecessary memory allocation. When a numeric vector is repeated many
 times, only a reference to the original data is stored rather than
-copying the full expanded sequence into memory. The expanded data is
+copying the full expanded replicates into memory. The expanded data is
 only materialised if it is modified, making repeated vectors cheap to
 create and pass around. This is particularly useful when working with
 large repeated sequences, such as replicated index vectors, simulation
@@ -28,3 +28,8 @@ Authors:
 
 - Mitchell O'Hara-Wild <mail@mitchelloharawild.com>
   ([ORCID](https://orcid.org/0000-0001-6729-7695))
+
+Other contributors:
+
+- Gabriel Becker (For developing the example ALTREP package vectorwindow
+  that was foundational to this package.) \[contributor\]
