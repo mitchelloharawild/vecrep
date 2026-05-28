@@ -62,6 +62,21 @@ y[1:6]
 #> [1] 999   2   3   4   5   1
 ```
 
+The `each` argument repeats each element in turn before moving to the
+next, matching the behaviour of `base::rep(..., each = n)`:
+
+``` r
+x <- as.numeric(1:3)
+
+# Each element repeated 3 times: 1 1 1 2 2 2 3 3 3
+rep_altrep(x, each = 3)
+#> [1] 1 1 1 2 2 2 3 3 3
+
+# times and each can be combined — each is applied first, then times repeats the result
+rep_altrep(x, times = 2, each = 3)
+#>  [1] 1 1 1 2 2 2 3 3 3 1 1 1 2 2 2 3 3 3
+```
+
 ## Supported types
 
 `rep_altrep()` supports most vector types:
