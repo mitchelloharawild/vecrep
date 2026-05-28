@@ -20,6 +20,19 @@ reference vector is a regular sequence represented with ALTREP. ALTREP
 sequences can be combined with ALTREP replicates to create repeating
 regular sub-sequences.
 
+Several common operations are accelerated by working directly on the
+reference vector rather than the full expanded result:
+
+- `sum()`: computed on the reference vector and scaled by the number of
+  replications.
+- `min()` / `max()`: dispatched to the reference vector without scanning
+  replicated values.
+- `is.na()` / `anyNA()`: NA checks are performed on the reference vector
+  and the result tiled, avoiding a full scan of repeated elements.
+- `sort()`: if the reference vector is already sorted, and the vector is
+  only replicated by element (i.e. `each > 1` but `times == 1`), then
+  the result is known to be sorted.
+
 ## Installation
 
 ``` r
@@ -166,10 +179,11 @@ names(y)
 
 ## Caveats
 
-- **Serialisation materialises.** `saveRDS()` expands the vector; the
-  round-tripped object is correct but no longer compact.
-- **Sorting expands the internal buffer**, though the ALTREP shell
-  persists.
+- Serialisation with `saveRDS()` expands the vector (it is correct but
+  no longer compact).
+- `sort()` materialises the vector if it is not already sorted, the
+  ALTREP API does not provide any method for implementing a
+  replicate-aware sorting algorithm.
 
 ## Acknowledgements
 
