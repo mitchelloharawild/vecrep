@@ -2,4 +2,4 @@
 
 ## All functions
 
-- [`rep_altrep()`](rep_altrep.md) : Repeat a numeric vector using ALTREP
+- [`rep_altrep()`](rep_altrep.md) : Repeat a vector using ALTREP
