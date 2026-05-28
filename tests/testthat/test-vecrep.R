@@ -44,11 +44,11 @@ test_that("rep_altrep rejects integer parent (fails at C level)", {
 })
 
 test_that("rep_altrep rejects character parent", {
-  expect_error(rep_altrep(letters[1:5], 2L), "mode")
+  expect_error(rep_altrep(letters[1:5], 2L), "double")
 })
 
 test_that("rep_altrep rejects list parent", {
-  expect_error(rep_altrep(list(1, 2), 2L), "mode")
+  expect_error(rep_altrep(list(1, 2), 2L), "double")
 })
 
 test_that("rep_altrep rejects non-scalar times", {

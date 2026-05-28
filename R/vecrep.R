@@ -14,7 +14,7 @@
 #'
 #' @export
 rep_altrep <- function(x, times) {
-    stopifnot(mode(x) == "numeric", length(times) == 1L, times >= 1L)
+    stopifnot(is.double(x), length(times) == 1L, times >= 1L)
     times <- as.numeric(times)
     .Call(C_make_rep_real, x, times)
 }
