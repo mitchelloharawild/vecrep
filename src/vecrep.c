@@ -356,6 +356,44 @@ static SEXP vrep_real_Max(SEXP x, Rboolean narm) {
   return vrep_summary("max", vrep_parent_or_expanded(x), narm);
 }
 
+static SEXP vrep_real_Sum(SEXP x, Rboolean narm) {
+  SEXP exp = VREP_EXPANDED(x);
+  if (exp != R_NilValue)
+    return vrep_summary("sum", exp, narm);
+  SEXP s = PROTECT(vrep_summary("sum", VREP_PARENT(x), narm));
+  double result = REAL_ELT(s, 0) * (double)(VREP_EACH(x) * VREP_TIMES(x));
+  UNPROTECT(1);
+  return Rf_ScalarReal(result);
+}
+
+/* Shared by vrep_int_Sum and vrep_lgl_Sum: scale an integer/logical sum. */
+static SEXP vrep_intlgl_Sum(SEXP x, Rboolean narm) {
+  SEXP exp = VREP_EXPANDED(x);
+  if (exp != R_NilValue)
+    return vrep_summary("sum", exp, narm);
+  SEXP s = PROTECT(vrep_summary("sum", VREP_PARENT(x), narm));
+  R_xlen_t scale = (R_xlen_t)VREP_EACH(x) * VREP_TIMES(x);
+  SEXP result;
+  if (TYPEOF(s) == INTSXP) {
+    int sv = INTEGER_ELT(s, 0);
+    if (sv == NA_INTEGER) {
+      result = Rf_ScalarInteger(NA_INTEGER);
+    } else {
+      double dv = (double)sv * (double)scale;
+      if (dv > INT_MAX || dv < INT_MIN) {
+        Rf_warning("integer overflow in vrep sum; returning double");
+        result = Rf_ScalarReal(dv);
+      } else {
+        result = Rf_ScalarInteger((int)dv);
+      }
+    }
+  } else {
+    result = Rf_ScalarReal(REAL_ELT(s, 0) * (double)scale);
+  }
+  UNPROTECT(1);
+  return result;
+}
+
 /* ── ALTINTEGER (also covers LGLSXP via separate class) ─────────────────── */
 
 static int vrep_int_Elt(SEXP x, R_xlen_t i) {
@@ -391,6 +429,10 @@ static SEXP vrep_int_Max(SEXP x, Rboolean narm) {
   return vrep_summary("max", vrep_parent_or_expanded(x), narm);
 }
 
+static SEXP vrep_int_Sum(SEXP x, Rboolean narm) {
+  return vrep_intlgl_Sum(x, narm);
+}
+
 /* ── ALTLOGICAL ─────────────────────────────────────────────────────────── */
 
 static int vrep_lgl_Elt(SEXP x, R_xlen_t i) {
@@ -408,6 +450,10 @@ static R_xlen_t vrep_lgl_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
   const int *par = LOGICAL_RO(VREP_PARENT(x));
   for (R_xlen_t j = 0; j < ncopy; j++) buf[j] = par[vrep_parent_idx(x, i + j)];
   return ncopy;
+}
+
+static SEXP vrep_lgl_Sum(SEXP x, Rboolean narm) {
+  return vrep_intlgl_Sum(x, narm);
 }
 
 /* ── ALTCOMPLEX ─────────────────────────────────────────────────────────── */
@@ -508,6 +554,7 @@ static void InitVRepRealClass(DllInfo *dll) {
   R_set_altreal_No_NA_method(cls, vrep_real_No_NA);
   R_set_altreal_Min_method(cls, vrep_real_Min);
   R_set_altreal_Max_method(cls, vrep_real_Max);
+  R_set_altreal_Sum_method(cls, vrep_real_Sum);
 }
 
 static void InitVRepIntClass(DllInfo *dll) {
@@ -526,6 +573,7 @@ static void InitVRepIntClass(DllInfo *dll) {
   R_set_altinteger_Is_sorted_method(cls, vrep_int_Is_sorted);
   R_set_altinteger_Min_method(cls, vrep_int_Min);
   R_set_altinteger_Max_method(cls, vrep_int_Max);
+  R_set_altinteger_Sum_method(cls, vrep_int_Sum);
   /* No No_NA equivalent for ALTINTEGER in public API. */
 }
 
@@ -542,6 +590,7 @@ static void InitVRepLglClass(DllInfo *dll) {
 
   R_set_altlogical_Elt_method(cls, vrep_lgl_Elt);
   R_set_altlogical_Get_region_method(cls, vrep_lgl_Get_region);
+  R_set_altlogical_Sum_method(cls, vrep_lgl_Sum);
 }
 
 static void InitVRepCplxClass(DllInfo *dll) {
