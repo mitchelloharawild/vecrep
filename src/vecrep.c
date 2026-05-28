@@ -310,7 +310,13 @@ static R_xlen_t vrep_real_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
   return ncopy;
 }
 
-static int vrep_real_Is_sorted(SEXP x) { return UNKNOWN_SORTEDNESS; }
+static int vrep_real_Is_sorted(SEXP x) {
+  if (VREP_EXPANDED(x) != R_NilValue) return UNKNOWN_SORTEDNESS;
+  R_xlen_t plen = VREP_PATTERN_LEN(x);
+  if (plen == 1)          return SORTED_INCR;
+  if (VREP_TIMES(x) > 1) return UNKNOWN_SORTEDNESS;
+  return REAL_IS_SORTED(VREP_PARENT(x));
+}
 
 static int vrep_real_No_NA(SEXP x) {
   if (VREP_EXPANDED(x) != R_NilValue) return 0;
@@ -369,7 +375,13 @@ static R_xlen_t vrep_int_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
   return ncopy;
 }
 
-static int vrep_int_Is_sorted(SEXP x) { return UNKNOWN_SORTEDNESS; }
+static int vrep_int_Is_sorted(SEXP x) {
+  if (VREP_EXPANDED(x) != R_NilValue) return UNKNOWN_SORTEDNESS;
+  R_xlen_t plen = VREP_PATTERN_LEN(x);
+  if (plen == 1)          return SORTED_INCR;
+  if (VREP_TIMES(x) > 1) return UNKNOWN_SORTEDNESS;
+  return INTEGER_IS_SORTED(VREP_PARENT(x));
+}
 
 static SEXP vrep_int_Min(SEXP x, Rboolean narm) {
   return vrep_summary("min", vrep_parent_or_expanded(x), narm);
@@ -448,7 +460,13 @@ static void vrep_str_Set_elt(SEXP x, R_xlen_t i, SEXP v) {
   SET_STRING_ELT(exp, i, v);
 }
 
-static int vrep_str_Is_sorted(SEXP x) { return UNKNOWN_SORTEDNESS; }
+static int vrep_str_Is_sorted(SEXP x) {
+  if (VREP_EXPANDED(x) != R_NilValue) return UNKNOWN_SORTEDNESS;
+  R_xlen_t plen = VREP_PATTERN_LEN(x);
+  if (plen == 1)          return SORTED_INCR;
+  if (VREP_TIMES(x) > 1) return UNKNOWN_SORTEDNESS;
+  return STRING_IS_SORTED(VREP_PARENT(x));
+}
 static int vrep_str_No_NA(SEXP x)     { return 0; } /* conservative */
 
 /* ── ALTLIST ────────────────────────────────────────────────────────────── */
