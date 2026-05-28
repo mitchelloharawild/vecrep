@@ -93,7 +93,6 @@ static SEXP vrep_Serialized_state(SEXP x) {
      * no serializing rep vectors as altreps,
      * will be converted to std vec
      */
-    warning("Not serializing rep vector as ALTREP, duplicating data");
     return NULL;
 }
 

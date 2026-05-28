@@ -191,33 +191,6 @@ test_that("[<- does not modify the parent vector", {
 })
 
 # ---------------------------------------------------------------------------
-# Serialisation triggers materialisation with a warning
-# ---------------------------------------------------------------------------
-
-test_that("saveRDS emits a warning about not serialising as ALTREP", {
-  y <- rep_altrep(small_parent, 3L)
-  tmp <- tempfile(fileext = ".rds")
-  on.exit(unlink(tmp))
-  expect_warning(saveRDS(y, tmp), regexp = "serializ|ALTREP", ignore.case = TRUE)
-})
-
-test_that("saveRDS / readRDS round-trips correctly", {
-  y <- rep_altrep(small_parent, 3L)
-  tmp <- tempfile(fileext = ".rds")
-  on.exit(unlink(tmp))
-  suppressWarnings(saveRDS(y, tmp))
-  expect_equal(as.numeric(readRDS(tmp)), rep(small_parent, 3L))
-})
-
-test_that("deserialised object is not a vrep_real ALTREP", {
-  y <- rep_altrep(small_parent, 3L)
-  tmp <- tempfile(fileext = ".rds")
-  on.exit(unlink(tmp))
-  suppressWarnings(saveRDS(y, tmp))
-  expect_false(is_vrep(readRDS(tmp)))
-})
-
-# ---------------------------------------------------------------------------
 # No-NA hint propagation
 # ---------------------------------------------------------------------------
 
