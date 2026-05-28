@@ -48,7 +48,7 @@ static R_altrep_class_t rep_real_class;
 /* clears the canary */
 #define VREP_UNSET_PARENT(x)    FULL_CLEAR_EXTPTR(VECTOR_ELT(R_altrep_data1(x), 0))
 #define VREP_PATTERN_LEN(x)     XLENGTH(VREP_PARENT(x))
-#define VREP_TIMES(x)           ((R_xlen_t) REAL_ELT(VECTOR_ELT(R_altrep_data1(x), 1), 0))
+#define VREP_TIMES(x)           ((R_xlen_t) INTEGER_ELT(VECTOR_ELT(R_altrep_data1(x), 1), 0))
 #define VREP_EXPANDED(x)        R_altrep_data2(x)
 #define VREP_SET_EXPANDED(x, v) R_set_altrep_data2(x, v)
 

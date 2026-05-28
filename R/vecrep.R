@@ -15,6 +15,6 @@
 #' @export
 rep_altrep <- function(x, times) {
     stopifnot(is.double(x), length(times) == 1L, times >= 1L)
-    times <- as.numeric(times)
+    times <- as.integer(times)
     .Call(C_make_rep_real, x, times)
 }
