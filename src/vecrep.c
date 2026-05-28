@@ -240,4 +240,5 @@ void R_init_vecrep(DllInfo *dll)
     InitVRepRealClass(dll);
 
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }
