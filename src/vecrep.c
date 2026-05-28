@@ -318,10 +318,20 @@ static int vrep_real_Is_sorted(SEXP x) {
   return REAL_IS_SORTED(VREP_PARENT(x));
 }
 
-static int vrep_real_No_NA(SEXP x) {
+/* ── shared No_NA helper ────────────────────────────────────────────────── */
+
+/*
+ * If the vector has been expanded we conservatively return 0 — a writable
+ * Dataptr may have introduced NAs.  Otherwise we delegate to the parent's
+ * own No_NA query via the supplied callback so that ALTREP parents can
+ * short-circuit without a full scan.
+ */
+static int vrep_No_NA(SEXP x, int (*parent_no_na)(SEXP)) {
   if (VREP_EXPANDED(x) != R_NilValue) return 0;
-  return REAL_NO_NA(VREP_PARENT(x));
+  return parent_no_na(VREP_PARENT(x));
 }
+
+static int vrep_real_No_NA(SEXP x) { return vrep_No_NA(x, REAL_NO_NA);    }
 
 /* ── shared summary helper ──────────────────────────────────────────────── */
 
@@ -433,6 +443,8 @@ static SEXP vrep_int_Sum(SEXP x, Rboolean narm) {
   return vrep_intlgl_Sum(x, narm);
 }
 
+static int vrep_int_No_NA (SEXP x) { return vrep_No_NA(x, INTEGER_NO_NA); }
+
 /* ── ALTLOGICAL ─────────────────────────────────────────────────────────── */
 
 static int vrep_lgl_Elt(SEXP x, R_xlen_t i) {
@@ -455,6 +467,8 @@ static R_xlen_t vrep_lgl_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
 static SEXP vrep_lgl_Sum(SEXP x, Rboolean narm) {
   return vrep_intlgl_Sum(x, narm);
 }
+
+static int vrep_lgl_No_NA (SEXP x) { return vrep_No_NA(x, LOGICAL_NO_NA); }
 
 /* ── ALTCOMPLEX ─────────────────────────────────────────────────────────── */
 
@@ -513,7 +527,7 @@ static int vrep_str_Is_sorted(SEXP x) {
   if (VREP_TIMES(x) > 1) return UNKNOWN_SORTEDNESS;
   return STRING_IS_SORTED(VREP_PARENT(x));
 }
-static int vrep_str_No_NA(SEXP x)     { return 0; } /* conservative */
+static int vrep_str_No_NA (SEXP x) { return 0; } /* no STRING_NO_NA in public API */
 
 /* ── ALTLIST ────────────────────────────────────────────────────────────── */
 
@@ -574,7 +588,7 @@ static void InitVRepIntClass(DllInfo *dll) {
   R_set_altinteger_Min_method(cls, vrep_int_Min);
   R_set_altinteger_Max_method(cls, vrep_int_Max);
   R_set_altinteger_Sum_method(cls, vrep_int_Sum);
-  /* No No_NA equivalent for ALTINTEGER in public API. */
+  R_set_altinteger_No_NA_method(cls, vrep_int_No_NA);
 }
 
 static void InitVRepLglClass(DllInfo *dll) {
@@ -591,6 +605,7 @@ static void InitVRepLglClass(DllInfo *dll) {
   R_set_altlogical_Elt_method(cls, vrep_lgl_Elt);
   R_set_altlogical_Get_region_method(cls, vrep_lgl_Get_region);
   R_set_altlogical_Sum_method(cls, vrep_lgl_Sum);
+  R_set_altlogical_No_NA_method(cls, vrep_lgl_No_NA);
 }
 
 static void InitVRepCplxClass(DllInfo *dll) {
