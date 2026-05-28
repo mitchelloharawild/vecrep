@@ -19,7 +19,7 @@ static R_altrep_class_t rep_real_class;
 
    data1: VECSXP (list) length 2
        0: ExternalPtr canary (parent in Protected slot)
-       1: REALSXP (pattern_len, times)
+       1: REALSXP (times)
    data2: Expanded data SEXP (initialized to R_NilValue)
 
    If data2 (expanded SEXP) is ever not R_NilValue (R's NULL), all methods
@@ -47,8 +47,8 @@ static R_altrep_class_t rep_real_class;
 /* this decrements the reference count for parent and then */
 /* clears the canary */
 #define VREP_UNSET_PARENT(x)    FULL_CLEAR_EXTPTR(VECTOR_ELT(R_altrep_data1(x), 0))
-#define VREP_PATTERN_LEN(x)     ((R_xlen_t) REAL_ELT(VECTOR_ELT(R_altrep_data1(x), 1), 0))
-#define VREP_TIMES(x)           ((R_xlen_t) REAL_ELT(VECTOR_ELT(R_altrep_data1(x), 1), 1))
+#define VREP_PATTERN_LEN(x)     XLENGTH(VREP_PARENT(x))
+#define VREP_TIMES(x)           ((R_xlen_t) REAL_ELT(VECTOR_ELT(R_altrep_data1(x), 1), 0))
 #define VREP_EXPANDED(x)        R_altrep_data2(x)
 #define VREP_SET_EXPANDED(x, v) R_set_altrep_data2(x, v)
 
@@ -60,7 +60,7 @@ void canary_finalizer(SEXP x) {
     }
 }
 
-SEXP make_rep_real(SEXP parent, SEXP meta) {
+SEXP make_rep_real(SEXP parent, SEXP times) {
     /* carry around a pointer to parent that we can put a finalizer on
        so we're not accumulating reference count that can't be
        decremented.
@@ -80,7 +80,7 @@ SEXP make_rep_real(SEXP parent, SEXP meta) {
     R_RegisterCFinalizerEx(canary, canary_finalizer, TRUE);
     SEXP mdata = PROTECT(allocVector(VECSXP, 2));
     SET_VECTOR_ELT(mdata, 0, canary);
-    SET_VECTOR_ELT(mdata, 1, meta);
+    SET_VECTOR_ELT(mdata, 1, times);
     R_altrep_class_t cls = rep_real_class;
     SEXP ans = R_new_altrep(cls, mdata, R_NilValue);
     UNPROTECT(1); /* mdata */
@@ -117,6 +117,8 @@ Rboolean vrep_Inspect(SEXP x, int pre, int deep, int pvec,
 
 static R_xlen_t vrep_Length(SEXP x)
 {
+    SEXP exp = VREP_EXPANDED(x);
+    if(exp != R_NilValue) return XLENGTH(exp);
     return VREP_PATTERN_LEN(x) * VREP_TIMES(x);
 }
 

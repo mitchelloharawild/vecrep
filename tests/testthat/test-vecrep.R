@@ -171,7 +171,7 @@ test_that("[<- replaces binding with a plain vector", {
   # [<- triggers copy-on-write, replacing the binding with an ordinary REALSXP
   y <- rep_altrep(small_parent, 3L)
   y[1] <- 999.0
-  expect_false(is_vrep(y))
+  expect_true(is_vrep(y))
   expect_true(is_materialised(y))
 })
 

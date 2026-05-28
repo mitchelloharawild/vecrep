@@ -16,7 +16,5 @@
 rep_altrep <- function(x, times) {
     stopifnot(mode(x) == "numeric", length(times) == 1L, times >= 1L)
     times <- as.numeric(times)
-    # ALTREP<pattern_len, times>
-    meta  <- c(as.numeric(length(x)), times)
-    .Call(C_make_rep_real, x, meta)
+    .Call(C_make_rep_real, x, times)
 }
