@@ -10,7 +10,7 @@
 #' @return An ALTREP numeric vector of length `length(x) * times`.
 #'
 #' @examples
-#' rep_altrep(1:5, 3)
+#' rep_altrep(rnorm(5), 3)
 #'
 #' @export
 rep_altrep <- function(x, times) {

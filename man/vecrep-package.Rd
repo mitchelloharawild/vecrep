@@ -6,7 +6,7 @@
 \alias{vecrep-package}
 \title{vecrep: Replication of Numeric Vectors Via ALTREP}
 \description{
-Replicates numeric vectors using R's ALTREP framework, avoiding unnecessary memory allocation. When a numeric vector is repeated many times, only a reference to the original data is stored rather than copying the full expanded sequence into memory. The expanded data is only materialised if it is modified, making repeated vectors cheap to create and pass around. This is particularly useful when working with large repeated sequences, such as replicated index vectors, simulation inputs, or repeated reference values in data pipelines.
+Replicates numeric vectors using R's ALTREP framework, avoiding unnecessary memory allocation. When a numeric vector is repeated many times, only a reference to the original data is stored rather than copying the full expanded replicates into memory. The expanded data is only materialised if it is modified, making repeated vectors cheap to create and pass around. This is particularly useful when working with large repeated sequences, such as replicated index vectors, simulation inputs, or repeated reference values in data pipelines.
 }
 \seealso{
 Useful links:
@@ -23,6 +23,11 @@ Useful links:
 Authors:
 \itemize{
   \item Mitchell O'Hara-Wild \email{mail@mitchelloharawild.com} (\href{https://orcid.org/0000-0001-6729-7695}{ORCID})
+}
+
+Other contributors:
+\itemize{
+  \item Gabriel Becker (For developing the example ALTREP package vectorwindow that was foundational to this package.) [contributor]
 }
 
 }

@@ -19,6 +19,6 @@ Creates a repeated numeric vector backed by an ALTREP representation,
 avoiding materialisation of the full vector in memory.
 }
 \examples{
-rep_altrep(1:5, 3)
+rep_altrep(rnorm(5), 3)
 
 }
