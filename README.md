@@ -167,8 +167,8 @@ class(p)
 #> [1] "POSIXct" "POSIXt"
 ```
 
-Named vectors keep their names lazily — the names are themselves stored
-as an ALTREP character vector rather than being eagerly expanded:
+Replication of named vectors also ALTREP replicates the names
+themselves:
 
 ``` r
 x <- c(a = 1.0, b = 2.0, c = 3.0)
