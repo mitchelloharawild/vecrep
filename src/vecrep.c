@@ -317,6 +317,39 @@ static int vrep_real_No_NA(SEXP x) {
   return REAL_NO_NA(VREP_PARENT(x));
 }
 
+/* ── shared summary helper ──────────────────────────────────────────────── */
+
+/*
+ * Call fn(par, na.rm = narm) in R_BaseEnv and return the result.
+ * Used by Min/Max/Sum methods to delegate to R's own generics, which will
+ * themselves dispatch through the parent's ALTREP methods when present.
+ */
+static SEXP vrep_summary(const char *fn, SEXP par, Rboolean narm) {
+  SEXP call = PROTECT(Rf_lang3(Rf_install(fn),
+                                par,
+                                Rf_ScalarLogical(narm)));
+  /* na.rm is a named argument */
+  SET_TAG(CDDR(call), Rf_install("na.rm"));
+  SEXP res = Rf_eval(call, R_BaseEnv);
+  UNPROTECT(1);
+  return res;
+}
+
+static SEXP vrep_parent_or_expanded(SEXP x) {
+  SEXP exp = VREP_EXPANDED(x);
+  return exp != R_NilValue ? exp : VREP_PARENT(x);
+}
+
+/* ── ALTREAL ────────────────────────────────────────────────────────────── */
+
+static SEXP vrep_real_Min(SEXP x, Rboolean narm) {
+  return vrep_summary("min", vrep_parent_or_expanded(x), narm);
+}
+
+static SEXP vrep_real_Max(SEXP x, Rboolean narm) {
+  return vrep_summary("max", vrep_parent_or_expanded(x), narm);
+}
+
 /* ── ALTINTEGER (also covers LGLSXP via separate class) ─────────────────── */
 
 static int vrep_int_Elt(SEXP x, R_xlen_t i) {
@@ -337,6 +370,14 @@ static R_xlen_t vrep_int_Get_region(SEXP x, R_xlen_t i, R_xlen_t n,
 }
 
 static int vrep_int_Is_sorted(SEXP x) { return UNKNOWN_SORTEDNESS; }
+
+static SEXP vrep_int_Min(SEXP x, Rboolean narm) {
+  return vrep_summary("min", vrep_parent_or_expanded(x), narm);
+}
+
+static SEXP vrep_int_Max(SEXP x, Rboolean narm) {
+  return vrep_summary("max", vrep_parent_or_expanded(x), narm);
+}
 
 /* ── ALTLOGICAL ─────────────────────────────────────────────────────────── */
 
@@ -447,6 +488,8 @@ static void InitVRepRealClass(DllInfo *dll) {
   R_set_altreal_Get_region_method(cls, vrep_real_Get_region);
   R_set_altreal_Is_sorted_method(cls, vrep_real_Is_sorted);
   R_set_altreal_No_NA_method(cls, vrep_real_No_NA);
+  R_set_altreal_Min_method(cls, vrep_real_Min);
+  R_set_altreal_Max_method(cls, vrep_real_Max);
 }
 
 static void InitVRepIntClass(DllInfo *dll) {
@@ -463,6 +506,8 @@ static void InitVRepIntClass(DllInfo *dll) {
   R_set_altinteger_Elt_method(cls, vrep_int_Elt);
   R_set_altinteger_Get_region_method(cls, vrep_int_Get_region);
   R_set_altinteger_Is_sorted_method(cls, vrep_int_Is_sorted);
+  R_set_altinteger_Min_method(cls, vrep_int_Min);
+  R_set_altinteger_Max_method(cls, vrep_int_Max);
   /* No No_NA equivalent for ALTINTEGER in public API. */
 }
 
