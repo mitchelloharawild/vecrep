@@ -9,6 +9,23 @@ with many repetitions, especially if the reference vector is a regular
 sequence represented with ALTREP. ALTREP sequences can be combined with
 ALTREP replicates to create repeating regular sub-sequences.
 
+Several common operations are accelerated by working directly on the
+reference vector rather than the full expanded result:
+
+- [`sum()`](https://rdrr.io/r/base/sum.html): computed on the reference
+  vector and scaled by the number of replications.
+- [`min()`](https://rdrr.io/r/base/Extremes.html) /
+  [`max()`](https://rdrr.io/r/base/Extremes.html): dispatched to the
+  reference vector without scanning replicated values.
+- [`is.na()`](https://rdrr.io/r/base/NA.html) /
+  [`anyNA()`](https://rdrr.io/r/base/NA.html): NA checks are performed
+  on the reference vector and the result tiled, avoiding a full scan of
+  repeated elements.
+- [`sort()`](https://rdrr.io/r/base/sort.html): if the reference vector
+  is already sorted, and the vector is only replicated by element
+  (i.e. `each > 1` but `times == 1`), then the result is known to be
+  sorted.
+
 ## Installation
 
 ``` r
@@ -163,11 +180,11 @@ names(y)
 
 ## Caveats
 
-- **Serialisation materialises.**
-  [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) expands the vector;
-  the round-tripped object is correct but no longer compact.
-- **Sorting expands the internal buffer**, though the ALTREP shell
-  persists.
+- Serialisation with [`saveRDS()`](https://rdrr.io/r/base/readRDS.html)
+  expands the vector (it is correct but no longer compact).
+- [`sort()`](https://rdrr.io/r/base/sort.html) materialises the vector
+  if it is not already sorted, the ALTREP API does not provide any
+  method for implementing a replicate-aware sorting algorithm.
 
 ## Acknowledgements
 

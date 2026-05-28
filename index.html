@@ -51,6 +51,17 @@
 <!-- badges: start -->
 
 <p>vecrep provides <code><a href="reference/rep_altrep.html">rep_altrep()</a></code>, an ALTREP alternative to <code><a href="https://rdrr.io/r/base/rep.html" class="external-link">base::rep()</a></code> that works with most vector types. Rather than duplicating data immediately, it stores a compact reference to the original vector and only expands it if a write forces materialisation. This makes it well-suited to vectors with many repetitions, especially if the reference vector is a regular sequence represented with ALTREP. ALTREP sequences can be combined with ALTREP replicates to create repeating regular sub-sequences.</p>
+<p>Several common operations are accelerated by working directly on the reference vector rather than the full expanded result:</p>
+<ul>
+<li>
+<code><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum()</a></code>: computed on the reference vector and scaled by the number of replications.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min()</a></code> / <code><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max()</a></code>: dispatched to the reference vector without scanning replicated values.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> / <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">anyNA()</a></code>: NA checks are performed on the reference vector and the result tiled, avoiding a full scan of repeated elements.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code>: if the reference vector is already sorted, and the vector is only replicated by element (i.e. <code>each &gt; 1</code> but <code>times == 1</code>), then the result is known to be sorted.</li>
+</ul>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -178,10 +189,9 @@
 <h2 id="caveats">Caveats<a class="anchor" aria-label="anchor" href="#caveats"></a>
 </h2>
 <ul>
+<li>Serialisation with <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> expands the vector (it is correct but no longer compact).</li>
 <li>
-<strong>Serialisation materialises.</strong> <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> expands the vector; the round-tripped object is correct but no longer compact.</li>
-<li>
-<strong>Sorting expands the internal buffer</strong>, though the ALTREP shell persists.</li>
+<code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> materialises the vector if it is not already sorted, the ALTREP API does not provide any method for implementing a replicate-aware sorting algorithm.</li>
 </ul>
 </div>
 <div class="section level2">
