@@ -86,12 +86,23 @@
 <span><span class="co">#&gt; [1] 1 2 3 4 5</span></span>
 <span><span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] 999   2   3   4   5   1</span></span></code></pre></div>
+<p>The <code>each</code> argument repeats each element in turn before moving to the next, matching the behaviour of <code>base::rep(..., each = n)</code>:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Each element repeated 3 times: 1 1 1 2 2 2 3 3 3</span></span>
+<span><span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="va">x</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1 1 1 2 2 2 3 3 3</span></span>
+<span></span>
+<span><span class="co"># times and each can be combined — each is applied first, then times repeats the result</span></span>
+<span><span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="va">x</span>, times <span class="op">=</span> <span class="fl">2</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  [1] 1 1 1 2 2 2 3 3 3 1 1 1 2 2 2 3 3 3</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="supported-types">Supported types<a class="anchor" aria-label="anchor" href="#supported-types"></a>
 </h2>
 <p><code><a href="reference/rep_altrep.html">rep_altrep()</a></code> supports most vector types:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># integer</span></span>
 <span><span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="fl">1L</span><span class="op">:</span><span class="fl">3L</span>, <span class="fl">3L</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 1 2 3 1 2 3 1 2 3</span></span>
@@ -132,7 +143,7 @@
 <span><span class="co">#&gt; [[6]]</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>Classed vectors such as <code>factor</code>, <code>Date</code>, and <code>POSIXct</code> are handled transparently. The class and relevant attributes (e.g. <code>levels</code> for factors) are preserved on the ALTREP object without forcing materialisation, so S3 dispatch works as expected:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># factor: levels preserved without expansion</span></span>
 <span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cat"</span>, <span class="st">"dog"</span>, <span class="st">"cat"</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3L</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span></span>
@@ -157,7 +168,7 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "POSIXct" "POSIXt"</span></span></code></pre></div>
 <p>Named vectors keep their names lazily — the names are themselves stored as an ALTREP character vector rather than being eagerly expanded:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1.0</span>, b <span class="op">=</span> <span class="fl">2.0</span>, c <span class="op">=</span> <span class="fl">3.0</span><span class="op">)</span></span>
 <span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="va">x</span>, <span class="fl">3L</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span></span>
@@ -172,6 +183,12 @@
 <li>
 <strong>Sorting expands the internal buffer</strong>, though the ALTREP shell persists.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="acknowledgements">Acknowledgements<a class="anchor" aria-label="anchor" href="#acknowledgements"></a>
+</h2>
+<p>The initial codebase was adapted from Gabriel Becker’s <a href="https://github.com/ALTREP-examples/vectorwindow/" class="external-link">vectorwindow</a> example, presented in his Bioconductor Developers Forum talk (<a href="https://www.youtube.com/watch?v=8i7ziLqsE2s" class="external-link">YouTube</a>).</p>
+<p>Substantial proportions of this package were developed in tandem with <a href="https://www.anthropic.com/claude" class="external-link">Claude Sonnet 4.6</a> (Anthropic). All code has been reviewed and guided by humans.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
