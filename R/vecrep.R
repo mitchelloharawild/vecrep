@@ -1,4 +1,3 @@
-
 #' Repeat a numeric vector using ALTREP
 #'
 #' Creates a repeated numeric vector backed by an ALTREP representation,
@@ -14,7 +13,7 @@
 #'
 #' @export
 rep_altrep <- function(x, times) {
-    stopifnot(is.double(x), length(times) == 1L, times >= 1L)
-    times <- as.integer(times)
-    .Call(C_make_rep_real, x, times)
+  stopifnot(is.double(x), length(times) == 1L, times >= 1L)
+  times <- as.integer(times)
+  .Call(C_make_rep_real, x, times)
 }
