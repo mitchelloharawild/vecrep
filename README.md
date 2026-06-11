@@ -35,9 +35,17 @@ reference vector rather than the full expanded result:
 
 ## Installation
 
+You can install the released version of vecrep from CRAN with:
+
 ``` r
-# install.packages("remotes")
-remotes::install_github("mitchelloharawild/vecrep")
+install.packages("vecrep")
+```
+
+Or install the development version from GitHub:
+
+``` r
+# install.packages("pak")
+pak::pak("mitchelloharawild/vecrep")
 ```
 
 ## Usage
@@ -193,5 +201,5 @@ example, presented in his Bioconductor Developers Forum talk
 ([YouTube](https://www.youtube.com/watch?v=8i7ziLqsE2s)).
 
 Substantial proportions of this package were developed in tandem with
-[Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic). All
-code has been reviewed and guided by humans.
+[Claude Sonnet 4.6](https://claude.com/product/overview) (Anthropic).
+All code has been reviewed and guided by humans.
