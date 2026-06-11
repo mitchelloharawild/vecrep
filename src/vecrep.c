@@ -103,14 +103,29 @@ static void canary_finalizer(SEXP x) {
  * attribute lookup path.
  */
 static void copy_vector_attrs(SEXP dst, SEXP src) {
-  static const char *attrs[] = {
-    "class", "levels", "dim", "dimnames", "tsp", "comment", NULL
-  };
-  for (int i = 0; attrs[i]; i++) {
-    SEXP a = getAttrib(src, install(attrs[i]));
-    if (a != R_NilValue)
-      setAttrib(dst, install(attrs[i]), a);
-  }
+  SEXP a;
+
+  /* Use predefined public-API symbols where available. */
+  if ((a = getAttrib(src, R_ClassSymbol))    != R_NilValue)
+    setAttrib(dst, R_ClassSymbol,    a);
+  if ((a = getAttrib(src, R_DimSymbol))      != R_NilValue)
+    setAttrib(dst, R_DimSymbol,      a);
+  if ((a = getAttrib(src, R_DimNamesSymbol)) != R_NilValue)
+    setAttrib(dst, R_DimNamesSymbol, a);
+
+  /* levels, tsp, comment have no public-API symbol constants; cache the
+     result of install() in static locals to avoid repeated symbol-table
+     lookups across calls. */
+  static SEXP sym_levels  = NULL;
+  static SEXP sym_tsp     = NULL;
+  static SEXP sym_comment = NULL;
+  if (!sym_levels)  sym_levels  = install("levels");
+  if (!sym_tsp)     sym_tsp     = install("tsp");
+  if (!sym_comment) sym_comment = install("comment");
+
+  if ((a = getAttrib(src, sym_levels))  != R_NilValue) setAttrib(dst, sym_levels,  a);
+  if ((a = getAttrib(src, sym_tsp))     != R_NilValue) setAttrib(dst, sym_tsp,     a);
+  if ((a = getAttrib(src, sym_comment)) != R_NilValue) setAttrib(dst, sym_comment, a);
 }
 
 static SEXP make_vrep_internal(SEXP parent, SEXP times, SEXP each,
