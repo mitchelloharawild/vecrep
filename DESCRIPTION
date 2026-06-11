@@ -19,7 +19,7 @@ Description: Replicates numeric vectors using R's ALTREP framework, avoiding
     This is particularly useful when working with large repeated sequences,
     such as replicated index vectors, simulation inputs, or repeated reference
     values in data pipelines.
-Depends: R (>= 4.2)
+Depends: R (>= 3.5)
 License: MIT + file LICENSE
 URL: https://pkg.mitchelloharawild.com/vecrep/, https://github.com/mitchelloharawild/vecrep
 BugReports: https://github.com/mitchelloharawild/vecrep/issues

@@ -1,4 +1,5 @@
 #include <R.h>
+#include <Rversion.h>
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/Altrep.h>
@@ -16,7 +17,9 @@
  * the class (and dim/dimnames if present) attributes are copied from the parent
  * onto the altrep object itself and onto any expanded materialization.
  *
- * ALTLIST support requires R >= 4.2.
+ * ALTLIST support (VECSXP) requires R >= 4.2 and is compiled in conditionally
+ * via #if R_VERSION >= R_Version(4, 2, 0).  On older R a list input falls back
+ * to an eager materialisation equivalent to base::rep().
  */
 
 /* ── per-type ALTREP class handles ─────────────────────────────────────── */
@@ -26,7 +29,9 @@ static R_altrep_class_t rep_lgl_class;
 static R_altrep_class_t rep_cplx_class;
 static R_altrep_class_t rep_raw_class;
 static R_altrep_class_t rep_str_class;
+#if R_VERSION >= R_Version(4, 2, 0)
 static R_altrep_class_t rep_list_class;
+#endif
 
 /* ── data layout ────────────────────────────────────────────────────────────
  *
@@ -520,8 +525,9 @@ static int vrep_str_Is_sorted(SEXP x) {
 }
 static int vrep_str_No_NA (SEXP x) { return 0; } /* no STRING_NO_NA in public API */
 
-/* ── ALTLIST ────────────────────────────────────────────────────────────── */
+/* ── ALTLIST (R >= 4.2 only) ────────────────────────────────────────────── */
 
+#if R_VERSION >= R_Version(4, 2, 0)
 static SEXP vrep_list_Elt(SEXP x, R_xlen_t i) {
   SEXP exp = VREP_EXPANDED(x);
   if (exp != R_NilValue) return VECTOR_ELT(exp, i);
@@ -539,6 +545,7 @@ static void vrep_list_Set_elt(SEXP x, R_xlen_t i, SEXP v) {
   }
   SET_VECTOR_ELT(exp, i, v);
 }
+#endif /* R_VERSION >= R_Version(4, 2, 0) */
 
 /* ── class initialisers ─────────────────────────────────────────────────── */
 
@@ -644,6 +651,7 @@ static void InitVRepStrClass(DllInfo *dll) {
   R_set_altstring_No_NA_method(cls, vrep_str_No_NA);
 }
 
+#if R_VERSION >= R_Version(4, 2, 0)
 static void InitVRepListClass(DllInfo *dll) {
   R_altrep_class_t cls = R_make_altlist_class("vrep_list", "vecrep", dll);
   rep_list_class = cls;
@@ -657,6 +665,7 @@ static void InitVRepListClass(DllInfo *dll) {
   R_set_altlist_Elt_method(cls, vrep_list_Elt);
   R_set_altlist_Set_elt_method(cls, vrep_list_Set_elt);
 }
+#endif /* R_VERSION >= R_Version(4, 2, 0) */
 
 /* ── public constructor ─────────────────────────────────────────────────── */
 
@@ -695,7 +704,24 @@ SEXP make_vrep(SEXP parent, SEXP times, SEXP each) {
     case CPLXSXP: cls = rep_cplx_class;  break;
     case RAWSXP:  cls = rep_raw_class;   break;
     case STRSXP:  cls = rep_str_class;   break;
-    case VECSXP:  cls = rep_list_class;  break;
+    case VECSXP:
+#if R_VERSION >= R_Version(4, 2, 0)
+      cls = rep_list_class; break;
+#else
+      {
+        /* ALTLIST (R_make_altlist_class) requires R >= 4.2.  Fall back to an
+           eager expansion equivalent to base::rep(parent, times, each). */
+        R_xlen_t plen = XLENGTH(parent);
+        R_xlen_t t    = (R_xlen_t)INTEGER_ELT(times, 0);
+        R_xlen_t e    = (R_xlen_t)INTEGER_ELT(each, 0);
+        R_xlen_t len  = plen * e * t;
+        SEXP ans = PROTECT(allocVector(VECSXP, len));
+        for (R_xlen_t j = 0; j < len; j++)
+          SET_VECTOR_ELT(ans, j, VECTOR_ELT(parent, (j / e) % plen));
+        UNPROTECT(1);
+        return ans;
+      }
+#endif
     default:
       error("make_vrep: unsupported type '%s'", type2char(TYPEOF(parent)));
   }
@@ -728,7 +754,9 @@ void R_init_vecrep(DllInfo *dll) {
   InitVRepCplxClass(dll);
   InitVRepRawClass(dll);
   InitVRepStrClass(dll);
+#if R_VERSION >= R_Version(4, 2, 0)
   InitVRepListClass(dll);
+#endif
 
   R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
   R_useDynamicSymbols(dll, FALSE);
