@@ -14,12 +14,11 @@
 Source:
 [`DESCRIPTION`](https://github.com/mitchelloharawild/vecrep/blob/main/DESCRIPTION)
 
-O'Hara-Wild M (2026). *vecrep: Replication of Numeric Vectors Via
-ALTREP*. R package version 0.0.0.9000,
-<https://pkg.mitchelloharawild.com/vecrep/>.
+O'Hara-Wild M (2026). *vecrep: Compact Vector Replication Via ALTREP*. R
+package version 0.0.0.9000, <https://pkg.mitchelloharawild.com/vecrep/>.
 
     @Manual{,
-      title = {vecrep: Replication of Numeric Vectors Via ALTREP},
+      title = {vecrep: Compact Vector Replication Via ALTREP},
       author = {Mitchell O'Hara-Wild},
       year = {2026},
       note = {R package version 0.0.0.9000},
