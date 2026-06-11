@@ -254,10 +254,7 @@ static void *vrep_Dataptr(SEXP x, Rboolean writeable) {
 
   SEXP ans = vrep_materialise(x); /* PROTECT(1) inside */
   VREP_SET_EXPANDED(x, ans);
-
-  if (writeable)
-    VREP_UNSET_PARENT(x);
-
+  VREP_UNSET_PARENT(x); /* release parent; no longer needed once materialised */
   UNPROTECT(1); /* ans — still reachable via data2 */
 
   switch (TYPEOF(ans)) {
