@@ -139,8 +139,8 @@ static SEXP make_vrep_internal(SEXP parent, SEXP times, SEXP each,
   SET_VECTOR_ELT(mdata, 1, times);
   SET_VECTOR_ELT(mdata, 2, each);
 
-  SEXP ans = R_new_altrep(cls, mdata, R_NilValue);
-  UNPROTECT(2); /* canary, mdata */
+  SEXP ans = PROTECT(R_new_altrep(cls, mdata, R_NilValue));
+  UNPROTECT(2); /* canary, mdata: both now reachable via ans->data1 */
 
   /* Propagate class/dim so R-level dispatch on the altrep works. */
   copy_vector_attrs(ans, parent);
@@ -156,6 +156,7 @@ static SEXP make_vrep_internal(SEXP parent, SEXP times, SEXP each,
     UNPROTECT(1);
   }
 
+  UNPROTECT(1); /* ans */
   return ans;
 }
 
