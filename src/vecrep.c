@@ -669,21 +669,23 @@ static void InitVRepListClass(DllInfo *dll) {
  * Equivalent to base::rep(parent, times = times, each = each).
  */
 SEXP make_vrep(SEXP parent, SEXP times, SEXP each) {
-  /* Normalise times to a length-1 INTSXP. */
-  if (TYPEOF(times) != INTSXP || XLENGTH(times) != 1) {
-    PROTECT(times = coerceVector(times, INTSXP));
-    if (INTEGER_ELT(times, 0) < 1)
-      error("make_vrep: 'times' must be a positive integer");
-    UNPROTECT(1);
-  }
+  /* Normalise times to a length-1 INTSXP, then validate. */
+  if (TYPEOF(times) != INTSXP || XLENGTH(times) != 1)
+    times = PROTECT(coerceVector(times, INTSXP));
+  else
+    PROTECT(times);
+  if (INTEGER_ELT(times, 0) == NA_INTEGER || INTEGER_ELT(times, 0) < 1)
+    error("make_vrep: 'times' must be a positive integer");
+  UNPROTECT(1);
 
-  /* Normalise each to a length-1 INTSXP. */
-  if (TYPEOF(each) != INTSXP || XLENGTH(each) != 1) {
-    PROTECT(each = coerceVector(each, INTSXP));
-    if (INTEGER_ELT(each, 0) < 1)
-      error("make_vrep: 'each' must be a positive integer");
-    UNPROTECT(1);
-  }
+  /* Normalise each to a length-1 INTSXP, then validate. */
+  if (TYPEOF(each) != INTSXP || XLENGTH(each) != 1)
+    each = PROTECT(coerceVector(each, INTSXP));
+  else
+    PROTECT(each);
+  if (INTEGER_ELT(each, 0) == NA_INTEGER || INTEGER_ELT(each, 0) < 1)
+    error("make_vrep: 'each' must be a positive integer");
+  UNPROTECT(1);
 
   R_altrep_class_t cls;
   switch (TYPEOF(parent)) {
