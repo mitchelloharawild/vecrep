@@ -69,8 +69,11 @@ static R_altrep_class_t rep_list_class;
 
 /* ── canary finalizer ───────────────────────────────────────────────────── */
 
+/* Static address used solely as a non-NULL sentinel; never dereferenced. */
+static int canary_sentinel;
+
 static void canary_finalizer(SEXP x) {
-  if (R_ExternalPtrAddr(x))
+  if (R_ExternalPtrAddr(x))   /* sentinel address means "not yet cleared" */
     FULL_CLEAR_EXTPTR(x);
 }
 
@@ -105,18 +108,9 @@ static void copy_vector_attrs(SEXP dst, SEXP src) {
   }
 }
 
-/* Forward declaration needed for the names-vrep construction below. */
-static SEXP make_vrep_internal(SEXP parent, SEXP times, SEXP each,
-                                R_altrep_class_t cls);
-
 static SEXP make_vrep_internal(SEXP parent, SEXP times, SEXP each,
                                 R_altrep_class_t cls) {
-#ifndef SWITCH_TO_REFCNT
-  MARK_NOT_MUTABLE(parent);
-#endif
-
-  int *canarydata = (int *)malloc(sizeof(int));
-  SEXP canary = R_MakeExternalPtr(canarydata, R_NilValue, R_NilValue);
+  SEXP canary = PROTECT(R_MakeExternalPtr(&canary_sentinel, R_NilValue, R_NilValue));
   R_SetExternalPtrProtected(canary, parent);
   R_RegisterCFinalizerEx(canary, canary_finalizer, TRUE);
 
@@ -126,7 +120,7 @@ static SEXP make_vrep_internal(SEXP parent, SEXP times, SEXP each,
   SET_VECTOR_ELT(mdata, 2, each);
 
   SEXP ans = R_new_altrep(cls, mdata, R_NilValue);
-  UNPROTECT(1); /* mdata */
+  UNPROTECT(2); /* canary, mdata */
 
   /* Propagate class/dim so R-level dispatch on the altrep works. */
   copy_vector_attrs(ans, parent);
