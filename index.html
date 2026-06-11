@@ -5,14 +5,14 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Compact Vector Replication Via ALTREP • vecrep</title>
+<title>Compact Vector Replication • vecrep</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Compact Vector Replication Via ALTREP">
-<meta name="description" content="Replicates vectors using R's ALTREP framework, avoiding unnecessary memory allocation. When a vector is repeated many times, only a reference to the original data is stored rather than copying the full expanded replicates into memory. The expanded data is only materialised if it is modified, making repeated vectors cheap to create and pass around. This is particularly useful when working with large repeated sequences, such as replicated index vectors, simulation inputs, or repeated reference values in data pipelines.">
-<meta property="og:description" content="Replicates vectors using R's ALTREP framework, avoiding unnecessary memory allocation. When a vector is repeated many times, only a reference to the original data is stored rather than copying the full expanded replicates into memory. The expanded data is only materialised if it is modified, making repeated vectors cheap to create and pass around. This is particularly useful when working with large repeated sequences, such as replicated index vectors, simulation inputs, or repeated reference values in data pipelines.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Compact Vector Replication">
+<meta name="description" content="Replicates vectors using R's ALTREP (Alternative Representations for R Objects) framework, avoiding unnecessary memory allocation. When a vector is repeated many times, only a reference to the original data is stored rather than copying the full expanded replicates into memory. The expanded data is only materialised if it is modified, making repeated vectors cheap to create and pass around. This is particularly useful when working with large repeated sequences, such as replicated index vectors, simulation inputs, or repeated reference values in data pipelines.">
+<meta property="og:description" content="Replicates vectors using R's ALTREP (Alternative Representations for R Objects) framework, avoiding unnecessary memory allocation. When a vector is repeated many times, only a reference to the original data is stored rather than copying the full expanded replicates into memory. The expanded data is only materialised if it is modified, making repeated vectors cheap to create and pass around. This is particularly useful when working with large repeated sequences, such as replicated index vectors, simulation inputs, or repeated reference values in data pipelines.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -32,6 +32,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -65,14 +66,18 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p>You can install the released version of vecrep from CRAN with:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"mitchelloharawild/vecrep"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"vecrep"</span><span class="op">)</span></span></code></pre></div>
+<p>Or install the development version from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"mitchelloharawild/vecrep"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pkg.mitchelloharawild.com/vecrep/" class="external-link">vecrep</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span></span>
@@ -87,7 +92,7 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span>      <span class="co"># aggregates stay lazy too</span></span>
 <span><span class="co">#&gt; [1] 60</span></span></code></pre></div>
 <p>Read operations (<code>[</code>, <code><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum()</a></code>, <code><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean()</a></code>, <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">anyNA()</a></code>) work directly on the parent vector without expanding it. The full vector is only materialised on the first write, and copy-on-write ensures the parent is never modified.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">parent</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span></span>
 <span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="va">parent</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span></span>
@@ -98,7 +103,7 @@
 <span><span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] 999   2   3   4   5   1</span></span></code></pre></div>
 <p>The <code>each</code> argument repeats each element in turn before moving to the next, matching the behaviour of <code>base::rep(..., each = n)</code>:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Each element repeated 3 times: 1 1 1 2 2 2 3 3 3</span></span>
@@ -113,7 +118,7 @@
 <h2 id="supported-types">Supported types<a class="anchor" aria-label="anchor" href="#supported-types"></a>
 </h2>
 <p><code><a href="reference/rep_altrep.html">rep_altrep()</a></code> supports most vector types:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># integer</span></span>
 <span><span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="fl">1L</span><span class="op">:</span><span class="fl">3L</span>, <span class="fl">3L</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 1 2 3 1 2 3 1 2 3</span></span>
@@ -154,7 +159,7 @@
 <span><span class="co">#&gt; [[6]]</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>Classed vectors such as <code>factor</code>, <code>Date</code>, and <code>POSIXct</code> are handled transparently. The class and relevant attributes (e.g. <code>levels</code> for factors) are preserved on the ALTREP object without forcing materialisation, so S3 dispatch works as expected:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># factor: levels preserved without expansion</span></span>
 <span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cat"</span>, <span class="st">"dog"</span>, <span class="st">"cat"</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3L</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span></span>
@@ -179,7 +184,7 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "POSIXct" "POSIXt"</span></span></code></pre></div>
 <p>Replication of named vectors also ALTREP replicates the names themselves:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1.0</span>, b <span class="op">=</span> <span class="fl">2.0</span>, c <span class="op">=</span> <span class="fl">3.0</span><span class="op">)</span></span>
 <span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rep_altrep.html">rep_altrep</a></span><span class="op">(</span><span class="va">x</span>, <span class="fl">3L</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span></span>
@@ -198,7 +203,7 @@
 <h2 id="acknowledgements">Acknowledgements<a class="anchor" aria-label="anchor" href="#acknowledgements"></a>
 </h2>
 <p>The initial codebase was adapted from Gabriel Becker’s <a href="https://github.com/ALTREP-examples/vectorwindow/" class="external-link">vectorwindow</a> example, presented in his Bioconductor Developers Forum talk (<a href="https://www.youtube.com/watch?v=8i7ziLqsE2s" class="external-link">YouTube</a>).</p>
-<p>Substantial proportions of this package were developed in tandem with <a href="https://www.anthropic.com/claude" class="external-link">Claude Sonnet 4.6</a> (Anthropic). All code has been reviewed and guided by humans.</p>
+<p>Substantial proportions of this package were developed in tandem with <a href="https://claude.com/product/overview" class="external-link">Claude Sonnet 4.6</a> (Anthropic). All code has been reviewed and guided by humans.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -228,7 +233,7 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Mitchell O'Hara-Wild <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0001-6729-7695" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
+<li>Mitchell O'Hara-Wild <br><small class="roles"> Author, maintainer, copyright holder </small> <a href="https://orcid.org/0000-0001-6729-7695" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
 <li><a href="authors.html">More about authors...</a></li>
 </ul>
 </div>
