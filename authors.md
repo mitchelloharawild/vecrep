@@ -15,12 +15,12 @@ Source:
 [`DESCRIPTION`](https://github.com/mitchelloharawild/vecrep/blob/main/DESCRIPTION)
 
 O'Hara-Wild M (2026). *vecrep: Compact Vector Replication*. R package
-version 0.0.0.9000, <https://pkg.mitchelloharawild.com/vecrep/>.
+version 0.1.0, <https://pkg.mitchelloharawild.com/vecrep/>.
 
     @Manual{,
       title = {vecrep: Compact Vector Replication},
       author = {Mitchell O'Hara-Wild},
       year = {2026},
-      note = {R package version 0.0.0.9000},
+      note = {R package version 0.1.0},
       url = {https://pkg.mitchelloharawild.com/vecrep/},
     }
