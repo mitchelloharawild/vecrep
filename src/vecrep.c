@@ -152,11 +152,11 @@ static Rboolean vrep_Inspect(SEXP x, int pre, int deep, int pvec,
   if (VREP_EXPANDED(x) != R_NilValue)
     Rprintf(" vrep<%s> [expanded]\n", tname);
   else
-    Rprintf(" vrep<%s> [par %p pattern_len: %ld each: %ld times: %ld]\n",
+    Rprintf(" vrep<%s> [par %p pattern_len: %.0f each: %.0f times: %.0f]\n",
             tname, (void *)VREP_PARENT(x),
-            (long)VREP_PATTERN_LEN(x),
-            (long)VREP_EACH(x),
-            (long)VREP_TIMES(x));
+            (double)VREP_PATTERN_LEN(x),
+            (double)VREP_EACH(x),
+            (double)VREP_TIMES(x));
   return TRUE;
 }
 
@@ -716,8 +716,8 @@ SEXP make_rep_real(SEXP parent, SEXP times) {
 /* ── DLL registration ───────────────────────────────────────────────────── */
 
 static const R_CallMethodDef CallEntries[] = {
-    {"make_vrep",     (DL_FUNC)&make_vrep,     -1},
-    {"make_rep_real", (DL_FUNC)&make_rep_real, -1},
+    {"make_vrep",     (DL_FUNC)&make_vrep,     3},
+    {"make_rep_real", (DL_FUNC)&make_rep_real, 2},
     {NULL, NULL, 0}
 };
 
