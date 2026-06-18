@@ -12,7 +12,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/mitchelloharawild/vecrep/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/mitchelloharawild/vecrep/blob/v0.1.0/DESCRIPTION)
 
 O'Hara-Wild M (2026). *vecrep: Compact Vector Replication*. R package
 version 0.1.0, <https://pkg.mitchelloharawild.com/vecrep/>.
