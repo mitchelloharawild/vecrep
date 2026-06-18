@@ -1,3 +1,5 @@
+# vecrep (development version)
+
 # vecrep 0.1.0
 
 * `rep_altrep()` replicates vectors using R's ALTREP framework, storing only a reference to the original data rather than copying full expanded replicates into memory.
